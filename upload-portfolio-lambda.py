@@ -20,9 +20,19 @@ def lambda_handler(event, context):
         
         print("Building Portfolio from: {}".format(str(location)))
         build_bucket = s3.Bucket(location['bucketName'])                                                                              
-        portfolio_bucket = s3.Bucket('yannfeunteun.com')                                                                                        portfolio_zip = io.BytesIO()                                                                                                             
-        build_bucket.download_fileobj(location['objectKey'], portfolio_zip)                                                                       
-        with zipfile.ZipFile(portfolio_zip) as myzip:                                                                                               for nm in myzip.namelist():                                                                                                                 obj = myzip.open(nm)                                                                                                                    nm = '/'.join(nm.split('/')[1:])                                                                                                        portfolio_bucket.upload_fileobj(                                                                                                            obj,                                                                                                                                    nm,                                                                                                                                     ExtraArgs={'ContentType': mimetypes.guess_type(nm)[0] or "text/plain"}                                                              )                                                                                                                                       portfolio_bucket.Object(nm).Acl().put(ACL='public-read')        
+        portfolio_bucket = s3.Bucket('yannfeunteun.com')                                                                              
+        build_bucket.download_fileobj(location['objectKey'], portfolio_zip)
+
+        with zipfile.ZipFile(portfolio_zip) as myzip:
+            for nm in myzip.namelist():
+                obj = myzip.open(nm)
+                nm = '/'.join(nm.split('/')[1:])
+                portfolio_bucket.upload_fileobj(
+                    obj,
+                    nm,
+                    ExtraArgs={'ContentType': mimetypes.guess_type(nm)[0] or "text/plain"}
+                )
+                portfolio_bucket.Object(nm).Acl().put(ACL='public-read')        
             
         print("Job Done!")
         topic.publish(Subject="Portfolio Deployed", Message="Portfolio deployed successfully!")
